@@ -15,6 +15,7 @@ deps () {
   if [ ! -d "deps" ]; then
     mkdir -p "deps"
   fi
+  cd deps
   echo "deps: installing tools"
   git clone $ONION_GIT
   cd onion 
