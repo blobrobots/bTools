@@ -1,9 +1,10 @@
 #! /bin/sh
 
 BUILD_DIR="build"
-NATIVE_BUILD_DIR="$BUILD_DIR/linux"
+NATIVE_BUILD_DIR="$BUILD_DIR"
 ARDUINO_BUILD_DIR="$BUILD_DIR/arduino"
-SRC_RELATIVE_PATH=../..
+NATIVE_SRC_RELATIVE_PATH=..
+OTHERS_SRC_RELATIVE_PATH=../..
 
 export BMAKE_ARGC=$#
 export BMAKE_ARGV="$@"
@@ -20,79 +21,92 @@ if [ ! -f "CMakeLists.txt" ]; then
     # http://stackoverflow.com/questions/7470165/how-to-go-to-each-directory-and-execute-a-command
     find . -maxdepth 1 -mindepth 1 -type d -exec sh -c 'cd "$0" && blobmake $BMAKE_ARGV' {} \;
   fi
-elif [ $BMAKE_ARGC -eq 0 ]; then
-
-  if [ ! -d $NATIVE_BUILD_DIR ]; then
-    mkdir -p $NATIVE_BUILD_DIR
-  fi
-
-  if [ ! -d $ARDUINO_BUILD_DIR ]; then
-    mkdir -p $ARDUINO_BUILD_DIR
-  fi
-
-  cd ${NATIVE_BUILD_DIR} && cmake $SRC_RELATIVE_PATH && make && cd $SRC_RELATIVE_PATH
-  cd ${ARDUINO_BUILD_DIR} && cmake $SRC_RELATIVE_PATH -DPLATFORM=Arduino && make && cd $SRC_RELATIVE_PATH
-
-elif [ $BMAKE_ARGC -eq 1 ] && [ "$BMAKE_CMD" = "arduino" ]; then
-
-  if [ ! -d $ARDUINO_BUILD_DIR ]; then
-    mkdir $ARDUINO_BUILD_DIR
-  fi
-
-  cd ${ARDUINO_BUILD_DIR} && cmake $SRC_RELATIVE_PATH -DPLATFORM=Arduino && make && cd $SRC_RELATIVE_PATH
-
-elif [ $BMAKE_ARGC -eq 1 ] && [ "$BMAKE_CMD" = "native" ]; then
-
-  if [ ! -d $NATIVE_BUILD_DIR ]; then
-    mkdir -p $NATIVE_BUILD_DIR
-  fi
-
-  cd ${NATIVE_BUILD_DIR} && cmake $SRC_RELATIVE_PATH && make && cd $SRC_RELATIVE_PATH
-
-elif [ $BMAKE_ARGC -eq 1 ] && [ "$BMAKE_CMD" = "clean" ]; then
-
-  if [ -d $BUILD_DIR ]; then
-    rm -rf $BUILD_DIR  
-  fi
-
-  if [ -d "bin" ]; then
-    rm -rf "bin"
-  fi
-
-  if [ -d "lib" ]; then
-    rm -rf "lib"
-  fi
-
-elif [ $BMAKE_ARGC -eq 1 ] && [ "$BMAKE_CMD" = "install" ]; then
-
-  if [ ! -d $NATIVE_BUILD_DIR ]; then
-    mkdir -p $NATIVE_BUILD_DIR
-  fi
-
-  cd ${NATIVE_BUILD_DIR} && cmake $SRC_RELATIVE_PATH && make && make install && cd $SRC_RELATIVE_PATH
-
-elif [ $BMAKE_ARGC -eq 1 ] && [ "$BMAKE_CMD" = "upload" ]; then
-  
-  if [ ! -d $ARDUINO_BUILD_DIR ]; then
-    mkdir -p $ARDUINO_BUILD_DIR
-  fi
-
-  cd ${ARDUINO_BUILD_DIR} && cmake $SRC_RELATIVE_PATH -DPLATFORM=Arduino && make && make upload && cd $SRC_RELATIVE_PATH
-
 else
-  echo " "
-  echo "Error in  command $0 $BMAKE_ARGV"
-  echo " "
-  echo "usage: blobmake [arduino|native|install|upload|clean]"
-  echo " "
-  echo " args:"
-  echo "       - arduino: compile for arduino platform"
-  echo "       - native: compile for native platform (linux)" 
-  echo "       - install: compile and install in native platform" 
-  echo "       - upload: compile and upload to arduino platform"
-  echo "       - clean: clean all compile objects, binaries and libraries"
-  echo "       - default: compile for native and arduino platforms"
-  echo " "
+  # check for availability of arduino toolchain on CMakeLists.txt file
+  $(grep -q "ArduinoToolchain.cmake" CMakeLists.txt)
+  if [ $? -eq 1 ]; then
+    ARDUINO_AVAILABLE=0
+  else
+    ARDUINO_AVAILABLE=1
+  fi
 
+  if [ $BMAKE_ARGC -eq 0 ]; then
+
+    if [ ! -d $NATIVE_BUILD_DIR ]; then
+      mkdir -p $NATIVE_BUILD_DIR
+    fi
+
+    cd ${NATIVE_BUILD_DIR} && cmake $NATIVE_SRC_RELATIVE_PATH && make && cd $NATIVE_SRC_RELATIVE_PATH
+
+    if [ $ARDUINO_AVAILABLE -eq 1 ]; then
+      if [ ! -d $ARDUINO_BUILD_DIR ]; then
+        mkdir -p $ARDUINO_BUILD_DIR
+      fi
+
+      cd ${ARDUINO_BUILD_DIR} && cmake ${OTHERS_SRC_RELATIVE_PATH} -DPLATFORM=Arduino && make && cd $OTHERS_SRC_RELATIVE_PATH
+    fi
+    
+
+  elif [ $BMAKE_ARGC -eq 1 ] && [ "$BMAKE_CMD" = "arduino" ] && [ $ARDUINO_AVAILABLE -eq 1 ]; then
+
+    if [ ! -d $ARDUINO_BUILD_DIR ]; then
+      mkdir $ARDUINO_BUILD_DIR
+    fi
+
+    cd ${ARDUINO_BUILD_DIR} && cmake $OTHERS_SRC_RELATIVE_PATH -DPLATFORM=Arduino && make && cd $OTHERS_SRC_RELATIVE_PATH
+
+  elif [ $BMAKE_ARGC -eq 1 ] && [ "$BMAKE_CMD" = "native" ]; then
+
+    if [ ! -d $NATIVE_BUILD_DIR ]; then
+      mkdir -p $NATIVE_BUILD_DIR
+    fi
+
+    cd ${NATIVE_BUILD_DIR} && cmake $NATIVE_SRC_RELATIVE_PATH && make && cd $NATIVE_SRC_RELATIVE_PATH
+
+  elif [ $BMAKE_ARGC -eq 1 ] && [ "$BMAKE_CMD" = "clean" ]; then
+
+    if [ -d $BUILD_DIR ]; then
+      rm -rf $BUILD_DIR  
+    fi
+
+    if [ -d "bin" ]; then
+      rm -rf "bin"
+    fi
+
+    if [ -d "lib" ]; then
+      rm -rf "lib"
+    fi
+
+  elif [ $BMAKE_ARGC -eq 1 ] && [ "$BMAKE_CMD" = "install" ]; then
+
+    if [ ! -d $NATIVE_BUILD_DIR ]; then
+      mkdir -p $NATIVE_BUILD_DIR
+    fi
+
+    cd ${NATIVE_BUILD_DIR} && cmake $NATIVE_SRC_RELATIVE_PATH && make && make install && cd $NATIVE_SRC_RELATIVE_PATH
+
+  elif [ $BMAKE_ARGC -eq 1 ] && [ "$BMAKE_CMD" = "upload" ] && [ $ARDUINO_AVAILABLE -eq 1 ]; then
+    
+    if [ ! -d $ARDUINO_BUILD_DIR ]; then
+      mkdir -p $ARDUINO_BUILD_DIR
+    fi
+
+    cd ${ARDUINO_BUILD_DIR} && cmake $OTHERS_SRC_RELATIVE_PATH -DPLATFORM=Arduino && make && make upload && cd $OTHERS_SRC_RELATIVE_PATH
+
+  else
+    echo " "
+    echo "Error in  command $0 $BMAKE_ARGV"
+    echo " "
+    echo "usage: blobmake [arduino|native|install|upload|clean]"
+    echo " "
+    echo " args:"
+    echo "       - arduino: compile for arduino platform"
+    echo "       - native: compile for native platform (linux)" 
+    echo "       - install: compile and install in native platform" 
+    echo "       - upload: compile and upload to arduino platform"
+    echo "       - clean: clean all compile objects, binaries and libraries"
+    echo "       - default: compile for native and arduino platforms"
+    echo " "
+
+  fi
 fi
-

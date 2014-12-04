@@ -1,0 +1,72 @@
+#! /bin/sh
+
+# install path
+BLOB_PATH="."
+# sdk
+BLOB_GIT="https://github.com/blobrobots"
+# deps
+ONION_GIT="https://github.com/davidmoreno/onion"
+
+# install dependencies
+deps () {
+
+  echo "deps: installing tools"
+  git clone ONION_GIT
+  cd -
+}
+
+# install blob packages
+sdk() {
+
+  echo "blob: installing tools"
+  git clone BLOB_GIT/tools
+  echo "blob: installing ui"
+  git clone BLOB_GIT/ui
+  echo "blob: installing comms"
+  git clone BLOB_GIT/comms
+  echo "blob: installing body"
+  git clone BLOB_GIT/body
+  echo "blob: installing brain"
+  git clone BLOB_GIT/brain
+  echo "blob: installing libs"
+  git clone BLOB_GIT/libs
+  cd -
+}
+
+# install all
+all() {
+  cd $BLOB_PATH
+  deps
+  sdk
+  cd - 
+}
+
+# print help
+print_help() {
+  echo " "
+  echo "Error in  command $0 $@"
+  echo " "
+  echo "usage: blobinstall [--help] [path]"
+  echo " "
+  echo " args:"
+  echo "       --help: print this help" 
+  echo "       [path]: optionally path into which install sdk and dependencies"
+  echo " "
+  echo " example: blobinstall ./blob"
+}
+
+if [ $# -eq 0 ]; then
+  all  
+elif [ $# -eq 1 ]; then
+  if [ "$1" = "--help" ]; then
+    print_help
+  else
+    BLOB_PATH="$1"
+    if [ ! -d $BLOB_PATH ]; then
+      mkdir -p $BLOB_PATH
+    fi
+    all
+  fi
+else
+  print_help
+fi
