@@ -2,6 +2,9 @@
 
 # install path
 BLOB_PATH="."
+ABSOLUTE_PATH=""
+ORIGINAL_PATH="."
+
 # sdk
 BLOB_GIT="https://github.com/blobrobots"
 # deps
@@ -9,36 +12,45 @@ ONION_GIT="https://github.com/davidmoreno/onion"
 
 # install dependencies
 deps () {
-
+  if [ ! -d "deps" ]; then
+    mkdir -p "deps"
+  fi
   echo "deps: installing tools"
-  git clone ONION_GIT
-  cd -
+  git clone $ONION_GIT
+  cd onion 
+  ABSOLUTE_PATH=$(pwd)
+  mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=$ABSOLUTE_PATH .. && make && make install && cd ../..
+
+  # other deps here ...
+
+  cd ..
 }
 
 # install blob packages
 sdk() {
 
   echo "blob: installing tools"
-  git clone BLOB_GIT/tools
+  git clone $BLOB_GIT/tools
   echo "blob: installing ui"
-  git clone BLOB_GIT/ui
+  git clone $BLOB_GIT/ui
   echo "blob: installing comms"
-  git clone BLOB_GIT/comms
+  git clone $BLOB_GIT/comms
   echo "blob: installing body"
-  git clone BLOB_GIT/body
+  git clone $BLOB_GIT/body
   echo "blob: installing brain"
-  git clone BLOB_GIT/brain
+  git clone $BLOB_GIT/brain
   echo "blob: installing libs"
-  git clone BLOB_GIT/libs
-  cd -
+  git clone $BLOB_GIT/libs
+
 }
 
 # install all
 all() {
   cd $BLOB_PATH
+  ORIGINAL_PATH=$(pwd)
   deps
   sdk
-  cd - 
+  cd $ORIGINAL_PATH 
 }
 
 # print help
